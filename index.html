@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Angela & Luke Wedding</title>
+  <link rel="icon" href="favicon.ico" />
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- React 18 UMD -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <!-- Babel for JSX -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-gray-50 text-gray-800">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    /* ---- Countdown hook ---- */
+    const useCountdown = (target) => {
+      const calc = () => {
+        const d = target - Date.now();
+        if (d <= 0) return null;
+        return {
+          days:  Math.floor(d / 864e5),
+          hours: Math.floor((d / 36e5) % 24),
+          mins:  Math.floor((d / 6e4) % 60),
+          secs:  Math.floor((d / 1e3) % 60),
+        };
+      };
+      const [left, setLeft] = useState(calc());
+      useEffect(() => {
+        const id = setInterval(() => setLeft(calc()), 1000);
+        return () => clearInterval(id);
+      }, []);
+      return left;
+    };
+
+    /* ---- Card + Section ---- */
+    const LinkCard = ({ item, extra }) => (
+      <a href={item.link} target="_blank" rel="noopener noreferrer"
+        className="block border border-gray-200 rounded-2xl shadow hover:shadow-lg transition p-6 mb-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-xl font-semibold">{item.name}</h3>
+            {item.description && <p className="mt-2 text-sm text-gray-600">{item.description}</p>}
+            {extra && <p className="mt-1 text-sm text-gray-500">{extra}</p>}
+          </div>
+          <span className="text-lg">→</span>
+        </div>
+      </a>
+    );
+
+    const Section = ({ id, title, children }) => (
+      <section id={id} className="py-16 px-6 md:px-20 lg:px-32 bg-white">
+        <h2 className="text-3xl font-bold mb-8 text-center">{title}</h2>
+        {children}
+      </section>
+    );
+
+    /* ---- App ---- */
+    function WeddingWebsite() {
+      const RSVP_LINK = "https://forms.gle/poMsqd1AwM6RfSTf6";
+      const targetDate = new Date("2026-12-19T00:00:00-06:00").getTime();
+      const remaining = useCountdown(targetDate);
+
+      /* -- Hero slideshow images -- */
+      const heroImages = ["hero1.jpg", "hero2.jpg", "hero3.jpg","hero4.jpg", "hero5.jpg", "hero6.jpg", "hero7.jpg", "hero8.jpg", "hero9.jpg"]; // replace with your images
+      const [slide, setSlide] = useState(0);
+      useEffect(() => {
+        const id = setInterval(() => setSlide((s) => (s + 1) % heroImages.length), 5000);
+        return () => clearInterval(id);
+      }, []);
+
+      /* -- Audio -- */
+      const audioRef = useRef(null);
+      const [isPlaying, setIsPlaying] = useState(false);
+      const [progress, setProgress] = useState(0);
+
+useEffect(() => {
+  audioRef.current = new Audio("firstdance.mp3");
+  const a = audioRef.current;
+
+  // update progress bar
+  const update = () => setProgress(a.currentTime / a.duration || 0);
+  const reset  = () => { setIsPlaying(false); setProgress(0); };
+
+  a.addEventListener("timeupdate", update);
+  a.addEventListener("ended", reset);
+
+  /* 1️⃣  Try to play immediately (true autoplay) */
+  a.play()
+    .then(() => setIsPlaying(true))            // ✅ autoplay worked
+    .catch(() => {
+      /* 2️⃣  Autoplay blocked → wait for first interaction */
+      const tryPlay = () => {
+        a.play().then(() => setIsPlaying(true)).catch(() => {});
+        ["click", "keydown", "touchstart"].forEach(evt =>
+          window.removeEventListener(evt, tryPlay)
+        );
+      };
+      ["click", "keydown", "touchstart"].forEach(evt =>
+        window.addEventListener(evt, tryPlay, { once: true })
+      );
+    });
+
+  /* cleanup on unmount */
+  return () => {
+    a.pause();
+    a.removeEventListener("timeupdate", update);
+    a.removeEventListener("ended", reset);
+  };
+}, []);
+      const toggleAudio = () => {
+        if (!audioRef.current) return;
+        if (audioRef.current.paused) { audioRef.current.play(); setIsPlaying(true); }
+        else { audioRef.current.pause(); setIsPlaying(false); }
+      };
+
+      const seekAudio = (e) => {
+        if (!audioRef.current) return;
+        const rect = e.currentTarget.getBoundingClientRect();
+        const pct  = (e.clientX - rect.left) / rect.width;
+        audioRef.current.currentTime = audioRef.current.duration * pct;
+        setProgress(pct);
+      };
+
+      /* -- Data (attractions, hotels, restaurants) -- */
+      const attractionsDallas = [
+        {name:"Dallas Arboretum & Botanical Garden",description:"66‑acre garden with seasonal festivals.",link:"https://www.dallasarboretum.org/"},
+        {name:"The Sixth Floor Museum",description:"JFK history exhibits at Dealey Plaza.",link:"https://www.jfk.org/"},
+        {name:"Reunion Tower GeO‑Deck",description:"360° observation deck & revolving restaurant.",link:"https://reuniontower.com/"},
+        {name:"AT&T Stadium Tour",description:"Behind‑the‑scenes tour of Dallas Cowboys stadium.",link:"https://attstadium.com/tours/"}
+      ];
+      const attractionsFortWorth = [
+        {name:"Fort Worth Stockyards",description:"Historic cattle drives & western heritage.",link:"https://www.fortworthstockyards.org/"},
+        {name:"Fort Worth Zoo",description:"Top‑ranked 64‑acre zoo with 500+ species.",link:"https://www.fortworthzoo.org/"},
+        {name:"Kimbell Art Museum",description:"World‑class art in a Louis Kahn masterpiece.",link:"https://kimbellart.org/"},
+        {name:"Sundance Square",description:"Downtown dining, shopping & nightlife.",link:"https://sundancesquare.com/"}
+      ];
+      const hotelsDallas = [
+        {name:"Omni Dallas Hotel",area:"Downtown",link:"https://www.omnihotels.com/hotels/dallas"},
+        {name:"Fairmont Dallas",area:"Arts District",link:"https://www.fairmont.com/dallas/"},
+        {name:"Hotel ZaZa Dallas Uptown",area:"Uptown",link:"https://hotelzaza.com/dallas"}
+      ];
+      const hotelsFortWorth = [
+        {name:"Omni Fort Worth Hotel",area:"Downtown",link:"https://www.omnihotels.com/hotels/fort-worth"},
+        {name:"Hyatt Place FW/Stockyards",area:"Stockyards",link:"https://www.hyatt.com/en-US/hotel/texas/hyatt-place-fort-worth-historic-stockyards"},
+        {name:"The Crescent Hotel, FW",area:"Cultural District",link:"https://www.crescenthotelftw.com/"}
+      ];
+      const restaurants = [
+        {name:"Pecan Lodge",cuisine:"Texas Barbecue",area:"Deep Ellum",link:"https://pecanlodge.com/"},
+        {name:"Lucia",cuisine:"Italian",area:"Bishop Arts",link:"https://luciadallas.com/"},
+        {name:"Uchiko Plano",cuisine:"Contemporary Japanese",area:"Plano",link:"https://uchikoplano.com/"},
+        {name:"Partenope Ristorante",cuisine:"Neapolitan Pizza",area:"Downtown",link:"https://partenopedallas.com/"},
+        {name:"Heim Barbecue",cuisine:"Texas Barbecue",area:"Fort Worth",link:"https://www.heimbarbecue.com/"}
+      ];
+      const half = Math.ceil(restaurants.length/2);
+      const restaurantsLeft  = restaurants.slice(0,half);
+      const restaurantsRight = restaurants.slice(half);
+
+      return (
+        <>
+          {/* HERO WITH SLIDESHOW */}
+          <header className="relative h-[85vh] flex flex-col items-center justify-center text-white overflow-hidden">
+            {heroImages.map((src, idx) => (
+              <img key={src} src={src} loading="lazy"
+                className={`
+                  absolute inset-0 w-full h-full object-contain
+                  transition-opacity duration-700 ease-in-out
+                  ${idx === slide ? "opacity-100" : "opacity-0"}
+                `}
+                alt="Angela & Luke"
+              />
+            ))}
+
+            {/* overlay */}
+            <div className="absolute inset-0 bg-black/40 pointer-events-none" />
+
+            {/* manual arrows */}
+            <button aria-label="Prev slide"
+              className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 p-2 rounded-full"
+              onClick={() => setSlide((slide - 1 + heroImages.length) % heroImages.length)}
+            >←</button>
+            <button aria-label="Next slide"
+              className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 p-2 rounded-full"
+              onClick={() => setSlide((slide + 1) % heroImages.length)}
+            >→</button>
+
+            {/* hero text */}
+            <div className="relative z-10 text-center px-4">
+              <h1 className="text-5xl md:text-6xl font-extrabold mb-4">Angela & Luke</h1>
+              <p className="text-xl mb-4">December 19, 2026 · Dallas‑Fort Worth, Texas</p>
+              {remaining ? (
+                <p className="text-lg mb-8">
+                  {remaining.days}d {remaining.hours}h {remaining.mins}m {remaining.secs}s until we say “I do!”
+                </p>
+              ) : (
+                <p className="text-lg mb-8">We’re married!</p>
+              )}
+              <a href={RSVP_LINK} target="_blank" rel="noreferrer"
+                 className="inline-block bg-pink-600 hover:bg-pink-700 text-white font-semibold py-3 px-8 rounded-full shadow-lg transition">
+                RSVP / Save the Date
+              </a>
+            </div>
+
+            {/* down arrow */}
+            <button aria-label="Scroll down"
+              onClick={()=>document.getElementById("what-to-do").scrollIntoView({behavior:"smooth"})}
+              className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-pink-600 hover:bg-pink-700 p-3 rounded-full shadow-lg transition">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none"
+                   viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </header>
+
+          {/* AUDIO BAR */}
+          <div className="bg-gray-900 text-white flex items-center px-6 py-3 space-x-4">
+            <button onClick={toggleAudio} aria-label={isPlaying ? "Pause" : "Play"}
+              className="bg-pink-600 hover:bg-pink-700 rounded-full p-3">{isPlaying ? "⏸" : "▶"}</button>
+            <div onClick={seekAudio} className="flex-1 h-2 bg-gray-700 rounded cursor-pointer" aria-label="Seek">
+              <div className="h-2 bg-pink-500 rounded" style={{width:`${progress*100}%`}}></div>
+            </div>
+          </div>
+
+          {/* NAV */}
+          <nav className="sticky top-0 bg-white shadow z-20">
+            <ul className="flex justify-center space-x-6 py-4 font-medium">
+              <li><a href="#what-to-do" className="hover:text-pink-600">Things to Do</a></li>
+              <li><a href="#stay"       className="hover:text-pink-600">Travel & Stay</a></li>
+              <li><a href="#eat"        className="hover:text-pink-600">Where to Eat</a></li>
+              <li><a href="#venue"      className="hover:text-pink-600">Venue Map</a></li>
+            </ul>
+          </nav>
+
+          {/* THINGS TO DO */}
+          <Section id="what-to-do" title="Things to Do in DFW">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div>
+                <h3 className="text-2xl font-semibold mb-4">Dallas</h3>
+                {attractionsDallas.map(a=> <LinkCard key={a.name} item={a}/> )}
+              </div>
+              <div>
+                <h3 className="text-2xl font-semibold mb-4">Fort Worth</h3>
+                {attractionsFortWorth.map(a=> <LinkCard key={a.name} item={a}/> )}
+              </div>
+            </div>
+          </Section>
+
+          {/* TRAVEL & STAY */}
+          <Section id="stay" title="Travel & Stay">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div>
+                <h3 className="text-2xl font-semibold mb-4">Dallas Hotels</h3>
+                {hotelsDallas.map(h=> <LinkCard key={h.name} item={h} extra={h.area}/> )}
+              </div>
+              <div>
+                <h3 className="text-2xl font-semibold mb-4">Fort Worth Hotels</h3>
+                {hotelsFortWorth.map(h=> <LinkCard key={h.name} item={h} extra={h.area}/> )}
+              </div>
+            </div>
+          </Section>
+
+          {/* RESTAURANTS */}
+          <Section id="eat" title="Restaurants We Love">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div>{restaurantsLeft.map(r=> <LinkCard key={r.name} item={r} extra={`${r.cuisine} · ${r.area}`}/> )}</div>
+              <div>{restaurantsRight.map(r=> <LinkCard key={r.name} item={r} extra={`${r.cuisine} · ${r.area}`}/> )}</div>
+            </div>
+          </Section>
+
+          {/* VENUE */}
+          <Section id="venue" title="Wedding Venue">
+            <div className="w-full aspect-video rounded-2xl overflow-hidden shadow">
+              <iframe title="Venue Map"
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3349.797391963153!2d-97.33228768480784!3d32.75548838097759!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x864e73c942e4dbb3%3A0x8392f8e701ada05d!2sSundance%20Square!5e0!3m2!1sen!2sus!4v1621973526339!5m2!1sen!2sus"
+                width="100%" height="100%" style={{border:0}} loading="lazy"
+                allowFullScreen referrerPolicy="no-referrer-when-downgrade"></iframe>
+            </div>
+          </Section>
+
+          {/* FOOTER */}
+          <footer className="bg-gray-100 text-center py-8 text-sm text-gray-600">
+            We can’t wait to celebrate with you! © 2025
+          </footer>
+        </>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<WeddingWebsite />);
+  </script>
+</body>
+</html>
